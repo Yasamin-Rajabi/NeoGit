@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#include "ansi_color.c"
+#include "ansi_color.h"
 
 #define maxn 500
 #define max_path 500
@@ -87,6 +89,8 @@ void do_show_tag(int, char*[]);
 void do_revert_n(int, char*[]);
 void do_revert_go_back(int, char*[]);
 void do_revert_check_merge(int, char*[]);
+
+void do_diff(char*, char*, int, int);
 
 int main(int argc, char *argv[]){
 	if(argc < 2){
@@ -173,6 +177,18 @@ int main(int argc, char *argv[]){
 		else
 			printf("error: invalid command\n");
 
+	}else if(!strcmp("diff", argv[1])){
+		if(!strcmp(argv[2], "-f")){
+			int x = 5;
+			int l1 = -1, l2 = -1;
+			if(x < argc && !strcmp(argv[x], "-line1"))
+				l1 = Number(argv[x+1]), x += 2;
+			if(x < argc && !strcmp(argv[x], "-line2"))
+				l2 = Number(argv[x+1]);
+			do_diff(argv[3], argv[4], l1, l2);
+			printf("%d%d\n", l1, l2);
+		}
+	
 	}else{
 		printf("error: invalid command\n");
 	}
@@ -418,6 +434,13 @@ void make_repository_files(){
 	fclose(make_file);
 
 	make_file = fopen("permission_commit.txt", "w");
+     fprintf(make_file, "%d\n", 1);
+     fclose(make_file);
+
+	make_file = fopen("user_name.txt", "w");
+     fclose(make_file);
+
+	make_file = fopen("user_email.txt", "w");
      fprintf(make_file, "%d\n", 1);
      fclose(make_file);
 
@@ -2447,4 +2470,78 @@ void do_rep_commit(char repository_path[], char user_name[], char user_email[], 
     change_current_files(repository_path, nu, 1);
     return_selected_path();
 }
+
+void do_diff(char file1[], char file2[], int line1, int line2){
+	FILE *f1 = fopen(file1, "r");
+	FILE *f2 = fopen(file2, "r");
+
+	char in1[maxn], in2[maxn];
+	int i = 1, j = 1;
+	int null1 = 0, null2 = 0;
+	while(1){
+		while(1){
+			if(fgets(in1, maxn, f1) == NULL){
+               	null1 = 1;
+				break;
+               }
+
+			int valid = 0;
+			for(int k = 0;k < strlen(in1);k++)
+				if(in1[k] != ' ' && in1[k] != '\t' && in1[k] != '\n')
+					valid = 1;
+
+			if(!valid){
+				i++;
+			}else{
+				break;
+			}
+		}
+
+		while(1){
+			if(fgets(in2, maxn, f2) == NULL){
+				null2 = 1;
+               	break;
+               }
+
+               int valid = 0;
+               for(int k = 0;k < strlen(in2);k++)
+                    if(in2[k] != ' ' && in2[k] != '\t' && in2[k] != '\n')
+                         valid = 1;
+               if(!valid){
+                    j++;
+			}else{
+                    break;
+               }
+          }
+
+		if((null1 == 0 && i != line1+1) || (null2 == 0 && j != line1+1)){
+			if(null1 || null2 || strcmp(in1, in2)){
+				printf("<<<<<\n");
+
+				printf("<%s>-<%d>\n", file1, i);
+				if(!null1)
+					printf(""_SGR_GREENF"%s"_SGR_RESET"\n", in1);
+				else
+					printf("\n");
+
+				printf("<%s>-<%d>\n", file2, j);
+				if(!null2)
+                    	printf(""_SGR_REDF"%s"_SGR_RESET"\n", in2);
+				else
+					printf("\n");
+
+				printf(">>>>>\n");
+			}
+				
+		}else{
+			break;
+		}
+		i++, j++;
+	}
+
+	fclose(f1);
+	fclose(f2);
+}
+
+
 
