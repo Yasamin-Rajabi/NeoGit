@@ -71,7 +71,7 @@ void do_log_branch(char*);
 void do_log_author(char*);
 void do_log_since(int, char*[]);
 void do_log_before(int, char*[]);
-void do_log_search(char*);
+void do_log_search(int, char*[]);
 void do_log_show_commit(int);
 
 void do_branch(int, char *argv[]);
@@ -126,9 +126,10 @@ int main(int argc, char *argv[]){
 				FILE *cnt_commits = fopen("cnt.txt", "r");
     				int cnt;
     				fscanf(cnt_commits, "%d", &cnt);
-
-    				for(int j = cnt;1 <= j;j--)
+				fclose(cnt_commits);
+    				for(int j = cnt;1 <= j;j--){
         				do_log_show_commit(j);
+				}
 			}
 
 		}else if(!strcmp("-n", argv[2]) && argc == 4)
@@ -142,7 +143,7 @@ int main(int argc, char *argv[]){
 	     else if(!strcmp("-before", argv[2]) && argc == 5)	          
 			do_log_before(argc, argv);
 	     else if(!strcmp("-search", argv[2]) && argc == 4)
-	          do_log_search(argv[3]);
+	          do_log_search(argc, argv);
 		else{
 	     	printf("invalid command!\n");
 		}
@@ -383,13 +384,13 @@ out_fr find_repository(char *path){
                break;
           }
 	}
+//	printf("XXXX\n%s ", output.path);
 
-
-	if(output.er != 1 && output.path != ""){
+	if(output.er != 1 && strcmp(output.path , "")){
 		global_config_data config = take_global_config();
 		strcpy(output.name , config.name);
 		strcpy(output.email , config.email);
-
+//		printf("YYYY\n");
 		char in[maxn];
 
 		chdir(output.path), chdir(".fp");
@@ -402,7 +403,8 @@ out_fr find_repository(char *path){
 				strcpy(output.name , in);
 		}
 		fclose(name_file);
-
+		
+//		printf("ZZZZ\n");
           FILE *email_file = fopen("user_email.txt", "r");
           if(fgets(in, maxn, email_file) != NULL){
                in[strlen(in)-1] = '\0';
@@ -441,7 +443,6 @@ void make_repository_files(){
      fclose(make_file);
 
 	make_file = fopen("user_email.txt", "w");
-     fprintf(make_file, "%d\n", 1);
      fclose(make_file);
 
 	// files relative to tag
@@ -694,7 +695,7 @@ void dfs(int deep, int case_dfs, char repository_path[]){
 				printf("file name: %s\nfile path: %s\nstage: %d\n", entry -> d_name, Tmp_path, is_stage(Tmp_path, repository_path));
 			}
 
-		//	free(file_path);
+		//	free(file_path)
 		}
 		if(strcmp(entry -> d_name, ".") && strcmp(entry -> d_name, "..") && strcmp(entry -> d_name, ".fp") && entry -> d_type == DT_DIR){
 			chdir(entry -> d_name);
@@ -798,8 +799,8 @@ bool is_stage(char path[], char repository_path[]){
     while(fgets(in, maxn, stage_file) != NULL){
 	  if(!strcmp(fp_compare, in)){
       	  fgets(in, max_path, stage_file);
-	  		
-		  if(strlen(in) != 1){
+	  		is_stage = 1;
+		 /* if(strlen(in) != 1){
 		       struct stat info;
 	       	  stat(path, &info);
      	  	  time_t last_change = info.st_mtime;
@@ -810,7 +811,7 @@ bool is_stage(char path[], char repository_path[]){
 
 		  }else{
 			 is_stage = 1;
-		  }
+		  }*/
 
 		  fgets(in, max_path, stage_file);
             break;
@@ -1372,6 +1373,7 @@ void do_commit(char massage[]){
 int do_log_is_repository(){
     take_cur_path();
     out_fr get_repository = find_repository(Cur_path);
+
     if (!strcmp(get_repository.path , "") || get_repository.er){
         printf("error: you do not have a repository!\n");
         return 0;
@@ -1513,20 +1515,26 @@ void do_log_before(int argc, char *argv[]){
         do_log_show_commit(j);
 }
 
-void do_log_search(char *search){
+void do_log_search(int argc, char* argv[]){
     if(!do_log_is_repository())
         return;
-    FILE *massage_commit = fopen("massage.txt", "r");
+    //FILE *massage_commit = fopen("massage.txt", "r");
 
-    int i = 1;
-    char in[maxn];
-    fgets(in, maxn, massage_commit);
+    char search[maxn];
+    for(int j=3;j<argc;j++){
+	    FILE *massage_commit = fopen("massage.txt", "r");
+	    strcpy(search, argv[j]);
+    		int i = 1;
+    		char in[maxn];
+    		fgets(in, maxn, massage_commit);
 
-    while(!feof(massage_commit)){
-        if(strstr(in, search) != NULL)
-            do_log_show_commit(i);
-        fgets(in, maxn, massage_commit);
-        i++;
+    		while(!feof(massage_commit)){
+        		if(strstr(in, search) != NULL)
+            		do_log_show_commit(i);
+        		fgets(in, maxn, massage_commit);
+        		i++;
+    		}
+		fclose(massage_commit);
     }
 }
 
@@ -1535,7 +1543,7 @@ void do_log_show_commit(int x){
     FILE *date_commit = fopen("date.txt", "r");
     FILE *massage_commit = fopen("massage.txt", "r");
     FILE *author_name = fopen("author_name.txt", "r");
-    FILE *author_email = fopen("authoe_gmail.txt", "r");
+    FILE *author_email = fopen("author_gmail.txt", "r");
     FILE *branch_commit = fopen("branch.txt", "r");
     FILE *cnt_file_commit = fopen("total_commited_files.txt", "r");
 
@@ -1985,7 +1993,7 @@ void do_checkout_HEAD(){
     fscanf(update_file, "%d", &nu_last_commit);
     fclose(update_file);
 
-    update_file = fopen("valid_commit.txt", "w");
+    update_file = fopen("permission_commit.txt", "w");
     fprintf(update_file, "%d\n", 1);
     fclose(update_file);
 
